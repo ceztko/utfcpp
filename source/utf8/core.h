@@ -58,6 +58,11 @@ namespace utf8
     typedef unsigned short  uint16_t;
     typedef unsigned int    uint32_t;
 #endif
+    enum endianess
+    {
+        little_endian,
+        big_endian,
+    };
 
 // Helper code - not intended to be directly called by the library users. May be changed at any time
 namespace internal
@@ -80,11 +85,13 @@ namespace internal
     {
         return static_cast<uint8_t>(0xff & oc);
     }
+
     template<typename u16_type>
     inline uint16_t mask16(u16_type oc)
     {
         return static_cast<uint16_t>(0xffff & oc);
     }
+
     template<typename octet_type>
     inline bool is_trail(octet_type oc)
     {
@@ -333,7 +340,29 @@ namespace internal
             ((it != end) && (utf8::internal::mask8(*it++)) == bom[1]) &&
             ((it != end) && (utf8::internal::mask8(*it))   == bom[2])
            );
-    }	
+    }
+
+    struct swapped
+    {
+        static inline uint16_t handle(uint16_t c)
+        {
+            // Perform byte swap
+            return ((c & 0xff00) >> 8) | ((c & 0x00ff) << 8);
+        }
+    };
+
+    struct unswapped
+    {
+        static inline uint16_t handle(uint16_t c)
+        {
+            // Just return same number
+            return c;
+        }
+    };
+
+    // Handle reading/writing of utf16 character, swapping byte if needed/requested
+    #define HANDLE_U16C(handler, x) handler::handle(static_cast<uint16_t>((x) & 0xffff))
+
 } // namespace utf8
 
 #endif // header guard
